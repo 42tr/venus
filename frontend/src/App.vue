@@ -1,7 +1,14 @@
 
 <template>
-  <div class="app-container">
+  <div class="app-container" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
+    <button class="sidebar-toggle-btn" @click="toggleSidebar">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path v-if="isSidebarCollapsed" d="M10 17L15 12L10 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path v-else d="M14 7L9 12L14 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
     <ProjectList 
+      :is-collapsed="isSidebarCollapsed"
       @project-selected="handleProjectSelected" 
       @new-project="handleNewProject"
       ref="projectList"
@@ -27,7 +34,8 @@ import ExcalidrawWrapper from './components/ExcalidrawWrapper.vue';
 import { getProjectById, updateProject } from './api/projects';
 
 const currentProject = ref(null);
-const projectList = ref(null); // Ref to access ProjectList component methods
+const projectList = ref(null);
+const isSidebarCollapsed = ref(false);
 
 let debounceTimer = null;
 
@@ -36,19 +44,17 @@ const handleProjectSelected = async (projectId) => {
     const project = await getProjectById(projectId);
     let parsedContent;
 
-    // Parse content if it's a string, otherwise use as is
     if (typeof project.content === 'string') {
       try {
         parsedContent = JSON.parse(project.content);
       } catch (e) {
         console.error("Error parsing project content:", e);
-        parsedContent = { elements: [], appState: {} }; // Fallback on error
+        parsedContent = { elements: [], appState: {} };
       }
     } else {
       parsedContent = project.content || { elements: [], appState: {} };
     }
 
-    // Ensure appState and collaborators array exist to prevent Excalidraw error
     if (!parsedContent.appState) {
       parsedContent.appState = {};
     }
@@ -64,18 +70,15 @@ const handleProjectSelected = async (projectId) => {
 };
 
 const handleNewProject = (newProject) => {
-  // This will refresh the list and optionally select the new project
   if (projectList.value) {
     projectList.value.fetchProjects();
   }
-  // Automatically select the new project to start drawing
   handleProjectSelected(newProject.id);
 };
 
 const handleDrawingChange = ({ elements, appState, files }) => {
   if (!currentProject.value) return;
 
-  // Debounce the save operation
   if (debounceTimer) {
     clearTimeout(debounceTimer);
   }
@@ -88,9 +91,12 @@ const handleDrawingChange = ({ elements, appState, files }) => {
     } catch (error) {
       console.error("Failed to save project:", error);
     }
-  }, 500); // Save after 500ms of inactivity
+  }, 500);
 };
 
+const toggleSidebar = () => {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value;
+};
 </script>
 
 <style scoped>
@@ -98,6 +104,41 @@ const handleDrawingChange = ({ elements, appState, files }) => {
   display: flex;
   height: 100vh;
   width: 100vw;
+  position: relative;
+  transition: padding-left 0.3s ease;
+}
+
+.sidebar-toggle-btn {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--sidebar-width, 250px) - 16px);
+  transform: translateY(-50%);
+  z-index: 100;
+  border: 1px solid #e0e0e0;
+  background: #ffffff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  color: #666;
+}
+
+.sidebar-toggle-btn:hover {
+  background: #f5f5f5;
+  border-color: #ccc;
+}
+
+.app-container.sidebar-collapsed {
+  --sidebar-width: 0px;
+}
+
+.app-container.sidebar-collapsed .sidebar-toggle-btn {
+  left: 15px;
 }
 
 .excalidraw-wrapper {
