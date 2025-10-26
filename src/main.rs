@@ -2,6 +2,7 @@ mod auth;
 mod auth_handlers;
 mod database;
 mod handlers;
+mod image_handlers;
 mod models;
 
 use axum::{
@@ -19,6 +20,7 @@ use crate::{
     auth_handlers::{get_current_user, login, register},
     database::Database,
     handlers::{create_project, delete_project, get_project_by_id, get_projects, update_project},
+    image_handlers::{upload_image, get_image, list_images, delete_image},
 };
 
 #[derive(RustEmbed)]
@@ -53,6 +55,8 @@ async fn main() -> anyhow::Result<()> {
                 .put(update_project)
                 .delete(delete_project),
         )
+        .route("/images", post(upload_image).get(list_images))
+        .route("/images/:id", get(get_image).delete(delete_image))
         .with_state(pool.clone());
 
     let app = Router::new()

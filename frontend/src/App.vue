@@ -50,6 +50,7 @@
                 v-if="currentProject"
                 :key="currentProject.id"
                 :initial-data="currentProject.content"
+                :project-id="currentProject.id"
                 @change="handleDrawingChange"
             />
             <div v-else class="no-project-selected">
@@ -125,6 +126,33 @@ const handleProjectSelected = async (projectId) => {
         }
         if (!Array.isArray(parsedContent.appState.collaborators)) {
             parsedContent.appState.collaborators = [];
+        }
+
+        // 调试：打印项目内容
+        console.log('加载的项目内容:', parsedContent);
+
+        // 修复图片URL路径
+        if (parsedContent.files) {
+            // 强制使用完���URL
+            const baseURL = 'http://localhost:8085';
+            
+            console.log('BaseURL:', baseURL);
+            console.log('DEV mode:', import.meta.env.DEV);
+            console.log('找到图片文件:', Object.keys(parsedContent.files));
+            
+            Object.keys(parsedContent.files).forEach(fileId => {
+                const file = parsedContent.files[fileId];
+                console.log(`文件 ${fileId}:`, file);
+                
+                if (file.dataURL && file.dataURL.startsWith('/api/images/')) {
+                    const oldURL = file.dataURL;
+                    // 确保图片URL包含完整的基础路径
+                    file.dataURL = `${baseURL}${file.dataURL}`;
+                    console.log(`修复URL: ${oldURL} -> ${file.dataURL}`);
+                }
+            });
+        } else {
+            console.log('项目中没有图片文件');
         }
 
         project.content = parsedContent;

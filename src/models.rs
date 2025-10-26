@@ -112,3 +112,47 @@ pub struct AuthResponse {
     pub user: UserResponse,
     pub token: String,
 }
+
+// 图片相关模型
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+pub struct Image {
+    pub id: String,
+    pub filename: String,
+    pub original_name: String,
+    pub mime_type: String,
+    pub size: i64,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    pub project_id: Option<String>,
+    pub uploaded_by: i64,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ImageResponse {
+    pub id: String,
+    pub filename: String,
+    pub original_name: String,
+    pub url: String,
+    pub mime_type: String,
+    pub size: i64,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    pub created_at: DateTime<Utc>,
+}
+
+impl Image {
+    pub fn to_response(&self) -> ImageResponse {
+        ImageResponse {
+            id: self.id.clone(),
+            filename: self.filename.clone(),
+            original_name: self.original_name.clone(),
+            url: format!("/api/images/{}", self.id),
+            mime_type: self.mime_type.clone(),
+            size: self.size,
+            width: self.width,
+            height: self.height,
+            created_at: self.created_at,
+        }
+    }
+}

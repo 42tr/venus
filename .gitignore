@@ -7,3 +7,4 @@ projects.json
 *.db
 target
 .env*
+uploads
