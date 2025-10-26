@@ -1,7 +1,10 @@
 import axios from 'axios';
+import getApiConfig from '../config/api.js';
+
+const apiConfig = getApiConfig();
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.DEV ? 'http://localhost:8085/api' : '/api',
+  baseURL: apiConfig.baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -32,8 +35,7 @@ export const uploadImage = async (file, projectId = null) => {
 };
 
 export const getImageUrl = (imageId) => {
-  const baseURL = import.meta.env.DEV ? 'http://localhost:8085' : '';
-  return `${baseURL}/api/images/${imageId}`;
+  return `${apiConfig.imageBaseURL}/api/images/${imageId}`;
 };
 
 export const listImages = async () => {

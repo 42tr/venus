@@ -1,10 +1,11 @@
 import axios from 'axios';
+import getApiConfig from '../config/api.js';
 
-const API_BASE = '/api/auth';
+const apiConfig = getApiConfig();
 
 // 创建axios实例
 const authApi = axios.create({
-  baseURL: API_BASE,
+  baseURL: `${apiConfig.baseURL}/auth`,
   headers: {
     'Content-Type': 'application/json',
   },

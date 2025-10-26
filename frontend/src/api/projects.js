@@ -1,8 +1,11 @@
 
 import axios from 'axios';
+import getApiConfig from '../config/api.js';
+
+const apiConfig = getApiConfig();
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.DEV ? 'http://localhost:8085/api' : '/api',
+  baseURL: apiConfig.baseURL,
   headers: {
     'Content-Type': 'application/json',
   },

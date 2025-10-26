@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
 import { Excalidraw } from '@excalidraw/excalidraw';
 import { uploadImage } from '../api/images';
+import getApiConfig from '../config/api.js';
 
 const props = defineProps({
   initialData: {
@@ -26,6 +27,8 @@ const excalidrawContainer = ref(null);
 let root = null;
 let uploadedFileIds = new Set();
 let isInitializing = false;
+
+const apiConfig = getApiConfig();
 
 // 将 base64 转换为 Blob
 const base64ToBlob = (base64, mimeType) => {
@@ -56,10 +59,9 @@ const handleFileUpload = async (files) => {
         });
 
         const uploadResult = await uploadImage(file, props.projectId);
-        const baseURL = 'http://localhost:8085';
         const fullImageURL = uploadResult.url.startsWith('http') 
           ? uploadResult.url 
-          : `${baseURL}${uploadResult.url}`;
+          : `${apiConfig.imageBaseURL}${uploadResult.url}`;
         
         processedFiles[fileId] = {
           ...fileData,
@@ -111,7 +113,6 @@ onMounted(() => {
   const processedInitialData = JSON.parse(JSON.stringify(props.initialData || {}));
   
   if (processedInitialData.files) {
-    const baseURL = 'http://localhost:8085';
     const fileIdMapping = {};
     
     Object.entries(processedInitialData.files).forEach(([fileId, fileData]) => {
@@ -119,7 +120,7 @@ onMounted(() => {
         uploadedFileIds.add(fileId);
         
         if (fileData.dataURL.startsWith('/api/images/')) {
-          fileData.dataURL = `${baseURL}${fileData.dataURL}`;
+          fileData.dataURL = `${apiConfig.imageBaseURL}${fileData.dataURL}`;
         }
         
         if (fileData.id && fileData.id !== fileId) {

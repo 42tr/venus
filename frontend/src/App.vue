@@ -67,6 +67,7 @@ import ExcalidrawWrapper from "./components/ExcalidrawWrapper.vue";
 import AuthForm from "./components/AuthForm.vue";
 import { getProjectById, updateProject } from "./api/projects";
 import { getCurrentUser, logout } from "./api/auth";
+import getApiConfig from "./config/api.js";
 
 const currentProject = ref(null);
 const projectList = ref(null);
@@ -75,6 +76,7 @@ const isAuthenticated = ref(false);
 const currentUser = ref(null);
 
 let debounceTimer = null;
+const apiConfig = getApiConfig();
 
 // 检查认证状态
 onMounted(async () => {
@@ -134,7 +136,7 @@ const handleProjectSelected = async (projectId) => {
         // 修复图片URL路径
         if (parsedContent.files) {
             // 强制使用完���URL
-            const baseURL = 'http://localhost:8085';
+            const baseURL = apiConfig.imageBaseURL;
             
             console.log('BaseURL:', baseURL);
             console.log('DEV mode:', import.meta.env.DEV);

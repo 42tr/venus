@@ -7,7 +7,7 @@ A web application for managing Excalidraw drawing projects, now powered by Rust 
 ## Tech Stack
 
 ### Backend (New - Rust)
-- **Axum** - Modern async web framework 
+- **Axum** - Modern async web framework
 - **SQLite** - Database for project storage
 - **SQLx** - Async SQL toolkit
 - **JWT** - Authentication
@@ -22,7 +22,7 @@ A web application for managing Excalidraw drawing projects, now powered by Rust 
 
 - Create and manage drawing projects
 - JWT authentication
-- Project storage in SQLite database  
+- Project storage in SQLite database
 - Static file serving for frontend
 - CORS support
 - Embedded frontend assets
@@ -42,22 +42,7 @@ A web application for managing Excalidraw drawing projects, now powered by Rust 
    cd venus
    ```
 
-2. **Set up environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-3. **Build and run with Rust backend**
-   ```bash
-   # Build everything
-   ./build-rust.sh
-   
-   # Or run in development mode
-   cargo run
-   ```
-
-4. **Frontend development** (optional, for frontend changes)
+2. **Frontend development** (optional, for frontend changes)
    ```bash
    cd frontend
    npm install
@@ -65,28 +50,18 @@ A web application for managing Excalidraw drawing projects, now powered by Rust 
    npm run build  # To build for production
    ```
 
-### Configuration
-
-Set these environment variables in `.env`:
-
-```bash
-# Database
-DATABASE_URL=sqlite:./venus.db
-
-# Server
-PORT=8085
-
-# Authentication  
-AUTH_URL=http://localhost:8080/auth
-JWT_SECRET=your-secret-key-change-this-in-production
-```
+3. **Backend development**
+   ```bash
+   cd ..
+   cargo run
+   ```
 
 ### API Endpoints
 
 - `GET /api/projects` - List projects
 - `POST /api/projects` - Create project
 - `GET /api/projects/:id` - Get project
-- `PUT /api/projects/:id` - Update project  
+- `PUT /api/projects/:id` - Update project
 - `DELETE /api/projects/:id` - Delete project
 
 ### Authentication
@@ -99,7 +74,7 @@ JWT_SECRET=your-secret-key-change-this-in-production
 The application has been rewritten from Go (Gin) to Rust (Axum) with the following improvements:
 
 - **Performance**: Rust's memory safety and zero-cost abstractions
-- **Type Safety**: Compile-time guarantees  
+- **Type Safety**: Compile-time guarantees
 - **Async/Await**: Built on Tokio for excellent concurrency
 - **Modern Architecture**: Clean separation of concerns
 - **SQLite Integration**: Robust database operations with SQLx
@@ -118,8 +93,7 @@ venus/
 │   └── models.rs        # Data models
 ├── migrations/          # Database migrations
 ├── frontend/            # Vue.js frontend
-├── Cargo.toml          # Rust dependencies
-└── build-rust.sh       # Build script
+└── Cargo.toml          # Rust dependencies
 ```
 
 ## Development
@@ -128,22 +102,19 @@ venus/
 
 1. Add database migrations in `migrations/`
 2. Update models in `src/models.rs`
-3. Add handlers in `src/handlers.rs`  
+3. Add handlers in `src/handlers.rs`
 4. Register routes in `src/main.rs`
 
 ### Testing
 
 ```bash
-# Run tests
-cargo test
-
 # Check code
 cargo check
 
 # Format code
 cargo fmt
 
-# Lint code  
+# Lint code
 cargo clippy
 ```
 
