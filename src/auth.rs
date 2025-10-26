@@ -1,26 +1,45 @@
 use axum::{
     http::{header::AUTHORIZATION, HeaderMap, StatusCode},
 };
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+use bcrypt::{hash, verify, DEFAULT_COST};
+use chrono::{Duration, Utc};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation, Algorithm};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    sub: String,
-    uid: i64,
-    exp: usize,
+pub struct Claims {
+    pub sub: String,
+    pub uid: i64,
+    pub username: String,
+    pub exp: usize,
+}
+
+impl Claims {
+    pub fn new(uid: i64, username: String) -> Self {
+        Self {
+            sub: uid.to_string(),
+            uid,
+            username,
+            exp: (Utc::now() + Duration::days(7)).timestamp() as usize, // Token expires in 7 days
+        }
+    }
+}
+
+pub fn hash_password(password: &str) -> Result<String, bcrypt::BcryptError> {
+    hash(password, DEFAULT_COST)
+}
+
+pub fn verify_password(password: &str, hash: &str) -> Result<bool, bcrypt::BcryptError> {
+    verify(password, hash)
+}
+
+pub fn generate_jwt_token(uid: i64, username: String) -> Result<String, jsonwebtoken::errors::Error> {
+    let claims = Claims::new(uid, username);
+    let secret = "your-secret-key-change-this-in-production";
+    encode(&Header::default(), &claims, &EncodingKey::from_secret(secret.as_ref()))
 }
 
 pub fn extract_uid_from_headers(headers: &HeaderMap) -> Result<i64, StatusCode> {
-    // Check if running on localhost (development mode)
-    if let Some(host) = headers.get("host") {
-        if let Ok(host_str) = host.to_str() {
-            if host_str.starts_with("localhost") {
-                return Ok(1); // Default uid for localhost
-            }
-        }
-    }
-
     // Extract JWT token from Authorization header
     let token = extract_token(headers)
         .ok_or(StatusCode::UNAUTHORIZED)?;
@@ -62,7 +81,7 @@ fn extract_token(headers: &HeaderMap) -> Option<String> {
 }
 
 fn validate_jwt_token(token: &str) -> Result<i64, Box<dyn std::error::Error>> {
-    let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "your-secret-key".to_string());
+    let secret = "your-secret-key-change-this-in-production";
     
     let validation = Validation::new(Algorithm::HS256);
     let token_data = decode::<Claims>(
