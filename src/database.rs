@@ -34,6 +34,7 @@ impl Database {
         Ok(())
     }
 
+
     pub fn pool(&self) -> SqlitePool {
         self.pool.clone()
     }
