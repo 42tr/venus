@@ -26,6 +26,7 @@ const emit = defineEmits(['change']);
 const excalidrawContainer = ref(null);
 let root = null;
 let uploadedFileIds = new Set();
+let fileIdToData = new Map();
 let isInitializing = false;
 
 const apiConfig = getApiConfig();
@@ -41,47 +42,56 @@ const base64ToBlob = (base64, mimeType) => {
   return new Blob([byteArray], { type: mimeType });
 };
 
-// 处理文件上传
-const handleFileUpload = async (files) => {
+// 处理文件上传和清理
+const handleFileProcessing = async (files) => {
   const processedFiles = {};
-  
+
   for (const [fileId, fileData] of Object.entries(files)) {
     if (uploadedFileIds.has(fileId)) {
-      processedFiles[fileId] = fileData;
+      // 已上传文件，使用缓存的清理后数据
+      const cleanData = fileIdToData.get(fileId);
+      if (cleanData) {
+        processedFiles[fileId] = {
+          ...fileData,
+          ...cleanData,
+        };
+      } else {
+        processedFiles[fileId] = fileData;
+      }
       continue;
     }
-    
+
     if (fileData.dataURL && fileData.dataURL.startsWith('data:image/')) {
+      // 新的 Base64 图片，执行上传
       try {
         const blob = base64ToBlob(fileData.dataURL, fileData.mimeType);
         const file = new File([blob], `pasted-image-${Date.now()}.png`, {
-          type: fileData.mimeType || 'image/png'
+          type: fileData.mimeType || 'image/png',
         });
 
         const uploadResult = await uploadImage(file, props.projectId);
-        const fullImageURL = uploadResult.url.startsWith('http') 
-          ? uploadResult.url 
-          : `${apiConfig.imageBaseURL}${uploadResult.url}`;
-        
-        processedFiles[fileId] = {
-          ...fileData,
-          dataURL: fullImageURL,
-          id: uploadResult.id,
+
+        const newData = {
+          mimeType: fileData.mimeType,
+          created: fileData.created || Date.now(),
+          lastRetrieved: Date.now(),
+          imageId: uploadResult.id,
+          dataURL: `/api/images/${uploadResult.id}`,
+          uploaded: true,
         };
-        
+
+        processedFiles[fileId] = newData;
         uploadedFileIds.add(fileId);
+        fileIdToData.set(fileId, newData);
       } catch (error) {
-        console.error('图片上传失败:', error);
-        processedFiles[fileId] = fileData;
+        // 上传失败则不包含此文件
       }
     } else {
+      // 非 Base64 文件，直接保留
       processedFiles[fileId] = fileData;
-      if (fileData.dataURL && !fileData.dataURL.startsWith('data:')) {
-        uploadedFileIds.add(fileId);
-      }
     }
   }
-  
+
   return processedFiles;
 };
 
@@ -89,57 +99,55 @@ const handleChange = async (elements, appState, files) => {
   if (isInitializing) {
     return;
   }
-  
+
   let processedFiles = files;
-  
   if (files && Object.keys(files).length > 0) {
-    const hasNewBase64Images = Object.entries(files).some(([fileId, file]) => 
-      file.dataURL && 
-      file.dataURL.startsWith('data:image/') && 
-      !uploadedFileIds.has(fileId)
-    );
-    
-    if (hasNewBase64Images) {
-      processedFiles = await handleFileUpload(files);
-    }
+    processedFiles = await handleFileProcessing(files);
   }
-  
+
   emit('change', { elements, appState, files: processedFiles });
 };
 
 onMounted(() => {
   isInitializing = true;
-  
+
+  uploadedFileIds.clear();
+  fileIdToData.clear();
+
   const processedInitialData = JSON.parse(JSON.stringify(props.initialData || {}));
-  
+
   if (processedInitialData.files) {
     const fileIdMapping = {};
-    
     Object.entries(processedInitialData.files).forEach(([fileId, fileData]) => {
-      if (fileData.dataURL && !fileData.dataURL.startsWith('data:')) {
+      const isReallyUploaded =
+        fileData.uploaded &&
+        fileData.imageId &&
+        fileData.dataURL &&
+        fileData.dataURL.startsWith('/api/images/');
+
+      if (isReallyUploaded) {
         uploadedFileIds.add(fileId);
+        fileIdToData.set(fileId, {
+          imageId: fileData.imageId,
+          dataURL: fileData.dataURL,
+          mimeType: fileData.mimeType,
+          created: fileData.created,
+          uploaded: true,
+        });
         
-        if (fileData.dataURL.startsWith('/api/images/')) {
-          fileData.dataURL = `${apiConfig.imageBaseURL}${fileData.dataURL}`;
-        }
-        
-        if (fileData.id && fileData.id !== fileId) {
-          fileIdMapping[fileData.id] = fileId;
+        fileData.dataURL = `${apiConfig.imageBaseURL}${fileData.dataURL}`;
+
+        if (fileData.imageId && fileData.imageId !== fileId) {
+          fileIdMapping[fileData.imageId] = fileId;
         }
       }
     });
-    
+
     if (processedInitialData.elements) {
-      const availableFileIds = Object.keys(processedInitialData.files || {});
-      
       processedInitialData.elements.forEach((element) => {
         if (element.type === 'image' && element.fileId) {
-          const oldFileId = element.fileId;
-          
-          if (fileIdMapping[oldFileId]) {
-            element.fileId = fileIdMapping[oldFileId];
-          } else if (!processedInitialData.files[oldFileId] && availableFileIds.length > 0) {
-            element.fileId = availableFileIds[0];
+          if (fileIdMapping[element.fileId]) {
+            element.fileId = fileIdMapping[element.fileId];
           }
         }
       });
@@ -148,7 +156,6 @@ onMounted(() => {
 
   if (excalidrawContainer.value) {
     root = createRoot(excalidrawContainer.value);
-    
     const excalidrawElement = createElement(Excalidraw, {
       initialData: processedInitialData,
       onChange: handleChange,
@@ -160,9 +167,8 @@ onMounted(() => {
         },
       },
     });
-
     root.render(excalidrawElement);
-    
+
     setTimeout(() => {
       isInitializing = false;
     }, 1500);
@@ -171,8 +177,9 @@ onMounted(() => {
 
 watch(() => props.projectId, () => {
   uploadedFileIds.clear();
+  fileIdToData.clear();
   isInitializing = true;
-  
+
   setTimeout(() => {
     isInitializing = false;
   }, 1500);
